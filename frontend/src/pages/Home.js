@@ -7,10 +7,10 @@ const ROOMS = [
     type: "Standard",
     price: 120,
     capacity: 2,
-    badge: "Phổ biến",
+    badge: "Popular",
     gradient: "linear-gradient(135deg,#2C2318,#6B4F2C)",
-    amenities: ["WiFi miễn phí", "Điều hòa", "Smart TV", "Minibar"],
-    description: "Phòng tiêu chuẩn ấm cúng với đầy đủ tiện nghi hiện đại, tầm nhìn ra thành phố tuyệt đẹp.",
+    amenities: ["Free WiFi", "Air Conditioning", "Smart TV", "Minibar"],
+    description: "A cozy standard room with modern amenities and a beautiful city view.",
   },
   {
     id: 2,
@@ -18,10 +18,10 @@ const ROOMS = [
     type: "Deluxe",
     price: 220,
     capacity: 2,
-    badge: "Nổi bật",
+    badge: "Featured",
     gradient: "linear-gradient(135deg,#1A2A3A,#2E5E8A)",
-    amenities: ["WiFi tốc độ cao", 'Smart TV 65"', "Bữa sáng", "Tầm nhìn biển"],
-    description: "Phòng rộng rãi với nội thất sang trọng, tầm nhìn panorama. Bao gồm bữa sáng miễn phí.",
+    amenities: ["High-speed WiFi", 'Smart TV 65"', "Breakfast", "Ocean View"],
+    description: "A spacious room with luxury furnishings and panoramic views. Breakfast included.",
   },
   {
     id: 3,
@@ -29,10 +29,10 @@ const ROOMS = [
     type: "Suite",
     price: 450,
     capacity: 4,
-    badge: "Cao cấp",
+    badge: "Premium",
     gradient: "linear-gradient(135deg,#1A1A2E,#4A3060)",
-    amenities: ["WiFi tốc độ cao", "Jacuzzi", "Butler riêng", "Bữa sáng"],
-    description: "Suite sang trọng với phòng khách riêng, bồn tắm Jacuzzi và tầm nhìn 180° ra vịnh.",
+    amenities: ["High-speed WiFi", "Jacuzzi", "Private Butler", "Breakfast"],
+    description: "A luxurious suite with a separate living room, Jacuzzi, and 180° bay views.",
   },
   {
     id: 4,
@@ -42,12 +42,12 @@ const ROOMS = [
     capacity: 6,
     badge: "VIP",
     gradient: "linear-gradient(135deg,#1C1A16,#5C3A18)",
-    amenities: ["3 phòng ngủ", "Butler 24/7", "Spa riêng", "Đón sân bay"],
-    description: "Đỉnh cao xa hoa – 3 phòng ngủ, spa riêng, butler service và đón tiễn sân bay.",
+    amenities: ["3 Bedrooms", "Butler 24/7", "Private Spa", "Airport Transfer"],
+    description: "The pinnacle of luxury – 3 bedrooms, private spa, butler service & airport transfer.",
   },
 ];
 
-const ROOM_TYPES = ["Tất cả", "Standard", "Deluxe", "Suite", "Presidential"];
+const ROOM_TYPES = ["All", "Standard", "Deluxe", "Suite", "Presidential"];
 
 function getToday() {
   return new Date().toISOString().split("T")[0];
@@ -74,7 +74,7 @@ function RoomCard({ room, onView, onBook }) {
       </div>
       <div style={{ padding: 20 }}>
         <p style={{ fontSize: 9, letterSpacing: "2px", textTransform: "uppercase", color: "#8A8278", marginBottom: 6 }}>
-          {room.type} · {room.capacity} khách
+          {room.type} · {room.capacity} guests
         </p>
         <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 400, marginBottom: 10, lineHeight: 1.2 }}>
           {room.name}
@@ -87,19 +87,19 @@ function RoomCard({ room, onView, onBook }) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 14, borderTop: "1px solid rgba(28,26,22,0.08)" }}>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, color: "#1C1A16" }}>
             ${room.price}
-            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#8A8278", fontWeight: 400 }}> / đêm</span>
+            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#8A8278", fontWeight: 400 }}> / night</span>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={onView}
               style={{ border: "1px solid #1C1A16", background: "transparent", color: "#1C1A16", padding: "7px 14px", fontSize: 11, fontWeight: 500, cursor: "pointer", borderRadius: 2, fontFamily: "'DM Sans', sans-serif" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#1C1A16"; e.currentTarget.style.color = "#F7F3EC"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#1C1A16"; }}
-            >Chi tiết</button>
+            >Details</button>
             <button onClick={onBook}
               style={{ background: "#C9993A", border: "1px solid #C9993A", color: "#1C1A16", padding: "7px 14px", fontSize: 11, fontWeight: 600, cursor: "pointer", borderRadius: 2, fontFamily: "'DM Sans', sans-serif" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#b8883a"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "#C9993A"; }}
-            >Đặt ngay</button>
+            >Book Now</button>
           </div>
         </div>
       </div>
@@ -116,12 +116,14 @@ function Toast({ toast }) {
   );
 }
 
-export default function Home({ onViewRoom, onBookNow, onMyBookings }) {
-  const [checkIn, setCheckIn] = useState(getToday);
+export default function Home({ onViewRoom, onBookNow, onMyBookings, onLogin, onLogout, user, onAdminDashboard }) {
+  const today = getToday();
+
+  const [checkIn, setCheckIn] = useState(today);
   const [checkOut, setCheckOut] = useState(getNextDay);
   const [guests, setGuests] = useState("2");
   const [roomType, setRoomType] = useState("");
-  const [activeTab, setActiveTab] = useState("Tất cả");
+  const [activeTab, setActiveTab] = useState("All");
   const [toast, setToast] = useState(null);
 
   const showToast = (msg, type = "success") => {
@@ -131,16 +133,25 @@ export default function Home({ onViewRoom, onBookNow, onMyBookings }) {
 
   const handleSearch = () => {
     if (checkIn && checkOut && checkIn >= checkOut) {
-      showToast("Ngày trả phòng phải sau ngày nhận phòng", "error");
+      showToast("Check-out date must be after check-in date", "error");
       return;
     }
     const filtered = roomType ? ROOMS.filter((r) => r.type === roomType) : ROOMS;
-    showToast(`Tìm thấy ${filtered.length} phòng phù hợp`);
+    showToast(`Found ${filtered.length} available rooms`);
     document.getElementById("rooms-section")?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleCheckInChange = (val) => {
+    setCheckIn(val);
+    if (checkOut <= val) {
+      const d = new Date(val);
+      d.setDate(d.getDate() + 1);
+      setCheckOut(d.toISOString().split("T")[0]);
+    }
+  };
+
   const filteredRooms = (() => {
-    const byTab = activeTab === "Tất cả" ? ROOMS : ROOMS.filter((r) => r.type === activeTab);
+    const byTab = activeTab === "All" ? ROOMS : ROOMS.filter((r) => r.type === activeTab);
     return roomType ? byTab.filter((r) => r.type === roomType) : byTab;
   })();
 
@@ -148,10 +159,14 @@ export default function Home({ onViewRoom, onBookNow, onMyBookings }) {
     page: { minHeight: "100vh", background: "#F7F3EC", fontFamily: "'DM Sans', sans-serif", color: "#1C1A16" },
     nav: { position: "sticky", top: 0, zIndex: 50, background: "rgba(247,243,236,0.96)", backdropFilter: "blur(10px)", borderBottom: "1px solid rgba(28,26,22,0.1)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 40px", height: 64 },
     logo: { fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 600, letterSpacing: "1.5px", cursor: "pointer", color: "#1C1A16" },
-    navLinks: { display: "flex", alignItems: "center", gap: 32 },
+    navLinks: { display: "flex", alignItems: "center", gap: 24 },
     navLink: { fontSize: 13, color: "#8A8278", textDecoration: "none", cursor: "pointer", fontWeight: 400 },
     navLinkActive: { fontSize: 13, color: "#1C1A16", fontWeight: 500, cursor: "pointer" },
     btnNav: { background: "#1C1A16", color: "#F7F3EC", border: "none", padding: "8px 18px", fontSize: 11, fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase", cursor: "pointer", borderRadius: 2, fontFamily: "'DM Sans', sans-serif" },
+    btnNavOutline: { background: "transparent", color: "#1C1A16", border: "1px solid rgba(28,26,22,0.3)", padding: "8px 18px", fontSize: 11, fontWeight: 500, letterSpacing: "1px", textTransform: "uppercase", cursor: "pointer", borderRadius: 2, fontFamily: "'DM Sans', sans-serif", marginRight: 8 },
+    userBadge: { display: "flex", alignItems: "center", gap: 10 },
+    userAvatar: { width: 32, height: 32, borderRadius: "50%", background: "#C9993A", color: "#1C1A16", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 },
+    userName: { fontSize: 13, color: "#1C1A16", fontWeight: 500 },
     hero: { minHeight: "calc(100vh - 64px)", background: "linear-gradient(160deg,#1C1A16 0%,#3A2510 55%,#7A5C35 100%)", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 40px 40px", position: "relative", overflow: "hidden" },
     heroBg: { position: "absolute", inset: 0, opacity: 0.04, backgroundImage: "repeating-linear-gradient(45deg,#C9993A 0,#C9993A 1px,transparent 0,transparent 50%)", backgroundSize: "20px 20px", pointerEvents: "none" },
     heroContent: { position: "relative", zIndex: 2 },
@@ -184,14 +199,43 @@ export default function Home({ onViewRoom, onBookNow, onMyBookings }) {
       <nav style={s.nav}>
         <div style={s.logo}>Luxe<span style={{ color: "#C9993A" }}>Stay</span></div>
         <div style={s.navLinks}>
-          <span style={s.navLinkActive}>Trang chủ</span>
-          <span style={s.navLink}>Phòng &amp; Tiện nghi</span>
-          <span style={s.navLink}>Dịch vụ</span>
-          <span style={s.navLink} onClick={onMyBookings}>Đặt phòng của tôi</span>
-          <button style={s.btnNav} onClick={() => onBookNow?.()}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#7A5C35")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#1C1A16")}
-          >Đặt ngay</button>
+          <span style={s.navLinkActive}>Home</span>
+
+          {/* TODO: remove after backend done */}
+          <span style={{ ...s.navLink, color: "#C9993A" }} onClick={onAdminDashboard}>Admin</span>
+
+          {/* My Bookings - chỉ hiện khi đã đăng nhập */}
+          {user && (
+            <span style={s.navLink} onClick={onMyBookings}>My Bookings</span>
+          )}
+
+          {/* Chưa đăng nhập: hiện Sign In + Register */}
+          {!user && (
+            <>
+              <button style={s.btnNavOutline} onClick={() => onLogin?.("login")}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(28,26,22,0.05)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >Sign In</button>
+              <button style={s.btnNav} onClick={() => onLogin?.("register")}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "#7A5C35")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "#1C1A16")}
+              >Register</button>
+            </>
+          )}
+
+          {/* Đã đăng nhập: hiện avatar + tên + Sign Out */}
+          {user && (
+            <div style={s.userBadge}>
+              <div style={s.userAvatar}>
+                {user.email?.[0]?.toUpperCase() || "U"}
+              </div>
+              <span style={s.userName}>{user.name || user.email}</span>
+              <button style={{ ...s.btnNavOutline, marginRight: 0 }} onClick={onLogout}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(28,26,22,0.05)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >Sign Out</button>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -199,53 +243,65 @@ export default function Home({ onViewRoom, onBookNow, onMyBookings }) {
       <section style={s.hero}>
         <div style={s.heroBg} />
         <div style={s.heroContent}>
-          <p style={s.heroTag}>✦ Trải nghiệm 5 sao</p>
+          <p style={s.heroTag}>✦ 5-Star Experience</p>
           <h1 style={s.heroTitle}>
-            Không gian nghỉ dưỡng<br />
-            <em style={{ color: "#E8D5A3" }}>đẳng cấp thế giới</em>
+            World-class<br />
+            <em style={{ color: "#E8D5A3" }}>luxury retreat</em>
           </h1>
           <p style={s.heroSub}>
-            Đặt phòng tại LuxeStay – nơi mỗi khoảnh khắc đều được chăm chút từng chi tiết nhỏ nhất, mang đến kỳ nghỉ hoàn hảo cho bạn.
+            Book your stay at LuxeStay – where every moment is crafted with meticulous attention to detail for an unforgettable experience.
           </p>
           <div style={s.heroCta}>
             <button style={s.btnPrimary}
               onClick={() => document.getElementById("rooms-section")?.scrollIntoView({ behavior: "smooth" })}
               onMouseEnter={(e) => (e.currentTarget.style.background = "#b8883a")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "#C9993A")}
-            >Khám phá phòng</button>
+            >Explore Rooms</button>
             <button style={s.btnSecondary}
               onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(247,243,236,0.7)")}
               onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(247,243,236,0.3)")}
-            >Xem dịch vụ</button>
+            >Our Services</button>
           </div>
 
           {/* Search Box */}
           <div style={s.searchBox}>
             <div>
-              <label style={s.sfLabel}>Ngày nhận phòng</label>
-              <input type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} style={s.sfInput} />
+              <label style={s.sfLabel}>Check-in Date</label>
+              <input
+                type="date"
+                value={checkIn}
+                min={today}
+                onChange={(e) => handleCheckInChange(e.target.value)}
+                style={s.sfInput}
+              />
             </div>
             <div>
-              <label style={s.sfLabel}>Ngày trả phòng</label>
-              <input type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} style={s.sfInput} />
+              <label style={s.sfLabel}>Check-out Date</label>
+              <input
+                type="date"
+                value={checkOut}
+                min={checkIn ? (() => { const d = new Date(checkIn); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0]; })() : today}
+                onChange={(e) => setCheckOut(e.target.value)}
+                style={s.sfInput}
+              />
             </div>
             <div>
-              <label style={s.sfLabel}>Số khách</label>
+              <label style={s.sfLabel}>Guests</label>
               <select value={guests} onChange={(e) => setGuests(e.target.value)} style={s.sfInput}>
-                {[1, 2, 3, 4, 5, 6].map((n) => (<option key={n} value={n}>{n} khách</option>))}
+                {[1, 2, 3, 4, 5, 6].map((n) => (<option key={n} value={n}>{n} guest{n > 1 ? "s" : ""}</option>))}
               </select>
             </div>
             <div>
-              <label style={s.sfLabel}>Loại phòng</label>
+              <label style={s.sfLabel}>Room Type</label>
               <select value={roomType} onChange={(e) => setRoomType(e.target.value)} style={s.sfInput}>
-                <option value="">Tất cả</option>
+                <option value="">All Types</option>
                 {["Standard", "Deluxe", "Suite", "Presidential"].map((t) => (<option key={t} value={t}>{t}</option>))}
               </select>
             </div>
             <button style={s.btnSearch} onClick={handleSearch}
               onMouseEnter={(e) => (e.currentTarget.style.background = "#7A5C35")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "#1C1A16")}
-            >Tìm kiếm</button>
+            >Search</button>
           </div>
         </div>
       </section>
@@ -262,17 +318,17 @@ export default function Home({ onViewRoom, onBookNow, onMyBookings }) {
             );
           })}
         </div>
-        <span style={{ fontSize: 12, color: "#8A8278" }}>{filteredRooms.length} phòng</span>
+        <span style={{ fontSize: 12, color: "#8A8278" }}>{filteredRooms.length} rooms available</span>
       </div>
 
       {/* ROOMS SECTION */}
       <section id="rooms-section" style={s.section}>
-        <p style={s.secLabel}>✦ Bộ sưu tập phòng</p>
-        <h2 style={s.secTitle}>Chọn <em>không gian</em> hoàn hảo</h2>
+        <p style={s.secLabel}>✦ Room Collection</p>
+        <h2 style={s.secTitle}>Choose your <em>perfect space</em></h2>
         {filteredRooms.length === 0 ? (
           <div style={s.emptyState}>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 48, marginBottom: 16, opacity: 0.3 }}>◈</div>
-            <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 300 }}>Không tìm thấy phòng phù hợp</p>
+            <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 300 }}>No rooms found</p>
           </div>
         ) : (
           <div style={s.grid}>
@@ -285,27 +341,27 @@ export default function Home({ onViewRoom, onBookNow, onMyBookings }) {
 
       {/* FEATURED */}
       <section style={{ padding: "0 40px 60px" }}>
-        <p style={s.secLabel}>✦ Nổi bật</p>
-        <h2 style={{ ...s.secTitle, marginBottom: 24 }}>Phòng <em>Presidential</em></h2>
+        <p style={s.secLabel}>✦ Featured</p>
+        <h2 style={{ ...s.secTitle, marginBottom: 24 }}><em>Presidential</em> Suite</h2>
         <div style={s.featured}>
           <div style={s.featLeft}>
-            <p style={{ fontSize: 9, letterSpacing: "3px", textTransform: "uppercase", color: "#C9993A", marginBottom: 12 }}>Cao cấp nhất</p>
+            <p style={{ fontSize: 9, letterSpacing: "3px", textTransform: "uppercase", color: "#C9993A", marginBottom: 12 }}>Most Exclusive</p>
             <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 34, fontWeight: 400, color: "#F7F3EC", lineHeight: 1.2, marginBottom: 8 }}>
               Presidential<br />Grand Suite
             </h3>
-            <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "#E8D5A3", marginBottom: 24 }}>$980 / đêm</p>
+            <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "#E8D5A3", marginBottom: 24 }}>$980 / night</p>
             <button style={{ ...s.btnPrimary, width: "fit-content" }} onClick={() => onBookNow?.(ROOMS[3])}
               onMouseEnter={(e) => (e.currentTarget.style.background = "#b8883a")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "#C9993A")}
-            >Đặt ngay</button>
+            >Book Now</button>
           </div>
           <div style={s.featRight}>
-            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 400, marginBottom: 14 }}>Đỉnh cao xa hoa</h3>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 400, marginBottom: 14 }}>The Pinnacle of Luxury</h3>
             <p style={{ fontSize: 13, color: "#8A8278", lineHeight: 1.8, marginBottom: 20 }}>
-              3 phòng ngủ riêng biệt, phòng ăn cao cấp, bếp đầy đủ và ban công rộng với tầm nhìn 270° toàn thành phố. Dành riêng cho những khoảnh khắc không thể quên.
+              3 separate bedrooms, a fine dining room, full kitchen and a wide balcony with 270° city views. Reserved for those unforgettable moments.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {["Butler service 24/7", "Đón tiễn sân bay riêng", "Bữa sáng & minibar cao cấp", "Jacuzzi & spa private"].map((a) => (
+              {["Butler service 24/7", "Private airport transfer", "Breakfast & premium minibar", "Jacuzzi & private spa"].map((a) => (
                 <div key={a} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12, color: "#8A8278" }}>
                   <div style={{ width: 6, height: 6, background: "#C9993A", borderRadius: "50%", flexShrink: 0 }} />
                   {a}
