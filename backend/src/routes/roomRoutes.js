@@ -1,33 +1,38 @@
 import express from "express";
-
+import { authenticate } from "../middlewares/authMiddleware.js";
+import { authorize } from "../middlewares/roleMiddleware.js";
+import { upload } from "../middlewares/uploadMiddleware.js";
 import {
   createRoom,
   getRooms,
   getRoom,
-  deleteRoom
+  updateRoom,
+  deleteRoom,
+  uploadRoomImages,
+  deleteRoomImage
 } from "../controllers/roomController.js";
-
-import { authenticate } from "../middlewares/authMiddleware.js";
-import { authorize } from "../middlewares/roleMiddleware.js";
 
 const router = express.Router();
 
+router.post("/", authenticate, authorize("admin"), createRoom);
+router.put("/:id", authenticate, authorize("admin"), updateRoom);
+router.delete("/:id", authenticate, authorize("admin"), deleteRoom);
+router.get("/", getRooms);
+router.get("/:id", getRoom);
+
 router.post(
-  "/",
+  "/upload/:id",
   authenticate,
-  // authorize("admin"),
-  createRoom
+  authorize("admin"),
+  upload.array("images"),
+  uploadRoomImages
 );
 
 router.delete(
-  "/:id",
+  "/image/:id",
   authenticate,
-  // authorize("admin"),
-  deleteRoom
+  authorize("admin"),
+  deleteRoomImage
 );
-
-router.get("/", getRooms);
-
-router.get("/:id", getRoom);
 
 export default router;

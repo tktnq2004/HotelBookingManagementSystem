@@ -4,46 +4,48 @@ const bookingSchema = new mongoose.Schema({
 
   customerId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: "users",
     required: true
   },
+
+  customerName: String,
 
   rooms: [
     {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Room",
-      required: true
+      roomId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "rooms"
+      },
+      roomTypeId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "roomtypes"
+      },
+      roomTypeName: String,
+      pricePerNight: Number
     }
   ],
 
-  checkIn: {
-    type: Date,
-    required: true
-  },
+  checkIn: Date,
+  checkOut: Date,
 
-  checkOut: {
-    type: Date,
-    required: true
-  },
+  nights: Number,
 
-  guests: {
-    type: Number,
-    required: true
-  },
+  totalPrice: Number,
 
-  price: {
-    type: Number,
-    required: true
-  },
+  guests: Number,
 
   status: {
     type: String,
-    enum: ["pending", "confirmed", "cancelled"],
+    enum: ["pending", "confirmed", "cancelled", "completed"],
     default: "pending"
   },
 
-  specialRequest: String
+  paymentStatus: {
+    type: String,
+    enum: ["unpaid", "paid", "refunded"],
+    default: "unpaid"
+  }
 
-}, { timestamps: true, versionKey: false });
+}, { timestamps: true },{versionKey: false });
 
-export default mongoose.model("Booking", bookingSchema);
+export default mongoose.model("bookings", bookingSchema);

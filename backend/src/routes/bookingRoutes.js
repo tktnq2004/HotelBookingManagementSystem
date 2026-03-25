@@ -5,7 +5,6 @@ import {
 } from "../controllers/bookingController.js";
 
 import { authenticate } from "../middlewares/authMiddleware.js";
-import { authorize } from "../middlewares/roleMiddleware.js";
 
 const router = express.Router();
 

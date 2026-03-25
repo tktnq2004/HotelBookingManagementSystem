@@ -3,14 +3,14 @@ import mongoose from "mongoose";
 const roomSchema = new mongoose.Schema({
 
   roomNumber: {
-    type: Number,
+    type: String,
     required: true,
     unique: true
   },
 
   roomTypeId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "RoomType",
+    ref: "roomtypes",
     required: true
   },
 

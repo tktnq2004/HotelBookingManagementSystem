@@ -6,13 +6,13 @@ import RoomType from "../models/roomTypeModel.js";
 
 export const createBooking = async (req, res) => {
     try {
-
         const { rooms, checkIn, checkOut, guests } = req.body;
 
         if (!rooms || rooms.length === 0 || !checkIn || !checkOut || !guests) {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
+        // ===== VALIDATE =====
         const roomObjectIds = rooms.map(id => {
             if (!mongoose.Types.ObjectId.isValid(id)) {
                 throw new Error(`Invalid roomId: ${id}`);
@@ -24,37 +24,40 @@ export const createBooking = async (req, res) => {
         const checkOutDate = new Date(checkOut);
 
         if (isNaN(checkInDate) || isNaN(checkOutDate)) {
-            return res.status(400).json({ message: "Invalid date format" });
+            return res.status(400).json({ message: "Invalid date" });
         }
 
         if (checkOutDate <= checkInDate) {
             return res.status(400).json({ message: "Invalid date range" });
         }
 
-        if (guests <= 0) {
-            return res.status(400).json({ message: "Guests must be greater than 0" });
-        }
+        // ===== CALCULATE NIGHTS =====
+        const nights = Math.ceil(
+            (checkOutDate - checkInDate) / (1000 * 60 * 60 * 24)
+        );
 
+        // ===== GET ROOMS =====
         const roomDocs = await Room.find({ _id: { $in: roomObjectIds } });
 
         if (roomDocs.length !== roomObjectIds.length) {
-            return res.status(404).json({ message: "One or more rooms not found" });
+            return res.status(404).json({ message: "Room not found" });
         }
 
-        const conflictingBookings = await Booking.find({
-            rooms: { $in: roomObjectIds },
+        // ===== CHECK CONFLICT =====
+        const conflict = await Booking.findOne({
+            "rooms.roomId": { $in: roomObjectIds },
             status: { $ne: "cancelled" },
             checkIn: { $lt: checkOutDate },
             checkOut: { $gt: checkInDate }
-        }).select("rooms checkIn checkOut");
+        });
 
-
-        if (conflictingBookings.length > 0) {
+        if (conflict) {
             return res.status(400).json({
-                message: "One or more rooms already booked in this time"
+                message: "Room already booked"
             });
         }
 
+        // ===== ROOM TYPES =====
         const roomTypeIds = roomDocs.map(r => r.roomTypeId);
 
         const roomTypes = await RoomType.find({
@@ -66,103 +69,108 @@ export const createBooking = async (req, res) => {
             roomTypeMap[rt._id] = rt;
         });
 
+        // ===== PRICING RULES =====
         const rules = await PricingRule.find({
             roomTypeId: { $in: roomTypeIds }
         });
 
         let totalPrice = 0;
+        const roomDetails = [];
 
+        // ===== CALCULATE PRICE =====
         for (const room of roomDocs) {
 
             const roomType = roomTypeMap[room.roomTypeId];
 
-            if (!roomType || !roomType.basePrice) {
+            if (!roomType) {
                 return res.status(400).json({
-                    message: "Invalid room type or base price"
+                    message: "Room type not found"
                 });
             }
 
+            let roomTotal = 0;
             let currentDate = new Date(checkInDate);
 
             while (currentDate < checkOutDate) {
 
-                let basePrice = Number(roomType.basePrice) || 0;
+                let basePrice = Number(roomType.basePrice);
                 let multiplier = 1;
 
-                const matchedRule = rules.find(rule =>
-                    rule.roomTypeId.toString() === room.roomTypeId.toString() &&
-                    currentDate >= rule.startDate &&
-                    currentDate <= rule.endDate
+                const rule = rules.find(r =>
+                    r.roomTypeId.toString() === room.roomTypeId.toString() &&
+                    currentDate >= r.startDate &&
+                    currentDate <= r.endDate
                 );
 
-                if (matchedRule && matchedRule.multiplier) {
-                    multiplier = Number(matchedRule.multiplier) || 1;
+                if (rule) {
+                    multiplier = Number(rule.multiplier);
                 }
 
                 const pricePerNight = basePrice * multiplier;
 
-                if (isNaN(pricePerNight)) {
-                    return res.status(500).json({
-                        message: "Price calculation failed"
-                    });
-                }
-
-                totalPrice += pricePerNight;
+                roomTotal += pricePerNight;
 
                 currentDate.setDate(currentDate.getDate() + 1);
             }
+
+            totalPrice += roomTotal;
+
+            // 👉 SNAPSHOT DATA
+            roomDetails.push({
+                roomId: room._id,
+                roomTypeId: room.roomTypeId,
+                roomTypeName: roomType.name,
+                pricePerNight: roomType.basePrice
+            });
         }
 
+        // ===== CREATE =====
         const booking = await Booking.create({
             customerId: req.user.id,
-            rooms: roomObjectIds,
+            customerName: req.user.name, // snapshot
+
+            rooms: roomDetails,
+
             checkIn: checkInDate,
             checkOut: checkOutDate,
+            nights,
+
+            totalPrice,
+
             guests,
-            price: totalPrice,
-            status: "pending"
+
+            status: "pending",
+            paymentStatus: "unpaid"
         });
 
         res.status(201).json(booking);
 
     } catch (error) {
         console.error("Create booking error:", error);
-
-        if (error.message.includes("Invalid roomId")) {
-            return res.status(400).json({ message: error.message });
-        }
-
-        res.status(500).json({
-            message: "Internal server error"
-        });
+        res.status(500).json({ message: "Internal server error" });
     }
 };
-
 export const getBookings = async (req, res) => {
-    try {
+  try {
 
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
-        let query = {};
+    let query = {};
 
-        if (req.user.role !== "admin") {
-            query.customerId = req.user.id;
-        }
-
-        const bookings = await Booking.find(query)
-            .populate("rooms")
-            .populate("customerId")
-            .sort({ createdAt: -1 })
-            .skip((page - 1) * limit)
-            .limit(limit);
-
-        res.json(bookings);
-
-    } catch (error) {
-        console.error("Get bookings error:", error);
-        res.status(500).json({
-            message: "Internal server error"
-        });
+    if (req.user.role !== "admin") {
+      query.customerId = req.user.id;
     }
+
+    const bookings = await Booking.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.json(bookings);
+
+  } catch (error) {
+    console.error("Get bookings error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };

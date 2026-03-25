@@ -1,10 +1,14 @@
 import mongoose from "mongoose";
 
 const pricingRuleSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  },
 
   roomTypeId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "RoomType",
+    ref: "roomtypes",
     required: true
   },
 
@@ -15,14 +19,31 @@ const pricingRuleSchema = new mongoose.Schema({
 
   endDate: {
     type: Date,
-    required: true
+    required: true,
+    validate: {
+      validator: function (value) {
+        return value >= this.startDate;
+      },
+      message: "endDate must be greater than startDate"
+    }
   },
 
   multiplier: {
     type: Number,
-    required: true
-  }
+    required: true,
+    min: 0.1,
+    max: 10,
+  },
 
-},{ versionKey: false });
+  priority: {
+    type: Number,
+    default: 1
+  },
 
-export default mongoose.model("pricingrule", pricingRuleSchema);
+  isActive: { type: Boolean, default: true }
+
+}, { timestamps: true, versionKey: false });
+
+pricingRuleSchema.index({ roomTypeId: 1, startDate: 1, endDate: 1 });
+
+export default mongoose.model("pricingrules", pricingRuleSchema);
