@@ -1,4 +1,5 @@
 import { useState } from "react";
+import bookingService from "../services/booking.service";
 
 function getToday() {
   return new Date().toISOString().split("T")[0];
@@ -21,7 +22,7 @@ function formatCard(val) {
 }
 
 function Steps({ current }) {
-  const steps = ["Guest Info", "Special Requests", "Payment"];
+  const steps = ["Guest Info", "Payment"];
   return (
     <div style={{ display: "flex", alignItems: "center", marginBottom: 36 }}>
       {steps.map((label, i) => {
@@ -47,10 +48,18 @@ function Steps({ current }) {
 }
 
 export default function Booking({ bookingData, onBack, onSuccess, onLogin, onLogout, onMyBookings, user }) {
-  const room = bookingData?.room || {
-    id: 1, name: "Superior Room", type: "Standard", price: 120,
-    gradient: "linear-gradient(135deg,#2C2318,#6B4F2C)",
-  };
+
+  const room = bookingData?.room;
+  const roomType = room?.roomTypeId;
+  const checkIn = bookingData?.checkIn || getToday();
+  const checkOut = bookingData?.checkOut || getNextDay();
+  const guests = bookingData?.guests || 1;
+  const pricePerNight = bookingData?.pricePerNight || roomType?.basePrice || 0;
+  const nights = bookingData?.nights || calcNights(checkIn, checkOut);
+  const subtotal = bookingData?.total || pricePerNight * nights;
+  const ruleName = bookingData?.ruleName || null;
+  const basePrice = roomType?.basePrice || 0;
+  const hasDiscount = ruleName && pricePerNight !== basePrice;
 
   const [step, setStep] = useState(1);
   const [toast, setToast] = useState(null);
@@ -58,25 +67,14 @@ export default function Booking({ bookingData, onBack, onSuccess, onLogin, onLog
   const [firstName, setFirstName] = useState(user?.name?.split(" ")[0] || "");
   const [lastName, setLastName] = useState(user?.name?.split(" ")[1] || "");
   const [email, setEmail] = useState(user?.email || "");
-  const [phone, setPhone] = useState("");
-  const [nationality, setNationality] = useState("United States");
-  const [idNumber, setIdNumber] = useState("");
-  const [specialRequest, setSpecialRequest] = useState("");
-  const [arrivalTime, setArrivalTime] = useState("2:00 PM – 4:00 PM");
-  const [purpose, setPurpose] = useState("Leisure / Vacation");
+  const [phone, setPhone] = useState(user?.phone || "");
+
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvv, setCardCvv] = useState("");
   const [cardName, setCardName] = useState("");
 
-  const [checkIn] = useState(bookingData?.checkIn || getToday());
-  const [checkOut] = useState(bookingData?.checkOut || getNextDay());
-  const [guests] = useState(bookingData?.guests || "2");
-
-  const nights = calcNights(checkIn, checkOut);
-  const subtotal = room.price * Math.max(nights, 1);
-  const tax = Math.round(subtotal * 0.1);
-  const total = subtotal + tax;
+  const [submitting, setSubmitting] = useState(false);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -84,10 +82,9 @@ export default function Booking({ bookingData, onBack, onSuccess, onLogin, onLog
   };
 
   const validateStep1 = () => {
-    if (!firstName || !lastName) { showToast("Please enter your full name", "error"); return false; }
+    if (!firstName) { showToast("Please enter your name", "error"); return false; }
     if (!email || !/\S+@\S+\.\S+/.test(email)) { showToast("Please enter a valid email", "error"); return false; }
     if (!phone) { showToast("Please enter your phone number", "error"); return false; }
-    if (!idNumber) { showToast("Please enter your ID / Passport number", "error"); return false; }
     return true;
   };
 
@@ -104,11 +101,24 @@ export default function Booking({ bookingData, onBack, onSuccess, onLogin, onLog
     setStep((s) => s + 1);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!validateStep3()) return;
-    const ref = "LS-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-    onSuccess?.({ ref, room, checkIn, checkOut, guests, nights, total, firstName, lastName, email });
+    try {
+      setSubmitting(true);
+      const res = await bookingService.createBooking({
+        rooms: [room._id],
+        checkIn,
+        checkOut,
+        guests: Number(guests),
+      });
+      onSuccess?.(res.data.data);
+    } catch (err) {
+      showToast(err.response?.data?.message || "Booking failed", "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
+
 
   const s = {
     page: { minHeight: "100vh", background: "#F7F3EC", fontFamily: "'DM Sans', sans-serif", color: "#1C1A16" },
@@ -197,15 +207,8 @@ export default function Booking({ bookingData, onBack, onSuccess, onLogin, onLog
               <div style={s.formGrid}>
                 <div style={s.formGroup}><label style={s.label}>First Name</label><input style={s.input} placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} onFocus={focusStyle} onBlur={blurStyle} /></div>
                 <div style={s.formGroup}><label style={s.label}>Last Name</label><input style={s.input} placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} onFocus={focusStyle} onBlur={blurStyle} /></div>
-                <div style={s.formGroup}><label style={s.label}>Email Address</label><input style={s.input} type="email" placeholder="john@email.com" value={email} onChange={(e) => setEmail(e.target.value)} onFocus={focusStyle} onBlur={blurStyle} /></div>
-                <div style={s.formGroup}><label style={s.label}>Phone Number</label><input style={s.input} type="tel" placeholder="+1 234 567 890" value={phone} onChange={(e) => setPhone(e.target.value)} onFocus={focusStyle} onBlur={blurStyle} /></div>
-                <div style={s.formGroup}>
-                  <label style={s.label}>Nationality</label>
-                  <select style={s.select} value={nationality} onChange={(e) => setNationality(e.target.value)}>
-                    {["United States", "United Kingdom", "Vietnam", "Japan", "South Korea", "Australia", "Canada", "France", "Germany", "Other"].map((n) => (<option key={n}>{n}</option>))}
-                  </select>
-                </div>
-                <div style={s.formGroup}><label style={s.label}>ID / Passport Number</label><input style={s.input} placeholder="Your ID or passport number" value={idNumber} onChange={(e) => setIdNumber(e.target.value)} onFocus={focusStyle} onBlur={blurStyle} /></div>
+                <div style={s.formGroup}><label style={s.label}>Email Address</label><input style={s.input} type="email" placeholder="@email.com" value={email} onChange={(e) => setEmail(e.target.value)} onFocus={focusStyle} onBlur={blurStyle} /></div>
+                <div style={s.formGroup}><label style={s.label}>Phone Number</label><input style={s.input} type="tel" placeholder="+84" value={phone} onChange={(e) => setPhone(e.target.value)} onFocus={focusStyle} onBlur={blurStyle} /></div>
               </div>
               <div style={s.btnRow}>
                 <button style={s.btnGhost} onClick={onBack}>← Back</button>
@@ -216,36 +219,7 @@ export default function Booking({ bookingData, onBack, onSuccess, onLogin, onLog
 
           {step === 2 && (
             <div>
-              <h2 style={s.formTitle}>Special Requests</h2>
-              <div style={{ marginBottom: 20 }}>
-                <label style={s.label}>Special Notes</label>
-                <textarea style={{ ...s.textarea, width: "100%", boxSizing: "border-box", marginTop: 6 }} placeholder="e.g. late check-in, baby crib, high floor..." value={specialRequest} onChange={(e) => setSpecialRequest(e.target.value)} onFocus={focusStyle} onBlur={blurStyle} />
-              </div>
-              <div style={s.formGrid}>
-                <div style={s.formGroup}>
-                  <label style={s.label}>Estimated Arrival Time</label>
-                  <select style={s.select} value={arrivalTime} onChange={(e) => setArrivalTime(e.target.value)}>
-                    {["Before 12:00 PM", "12:00 PM – 2:00 PM", "2:00 PM – 4:00 PM", "4:00 PM – 6:00 PM", "After 6:00 PM"].map((t) => (<option key={t}>{t}</option>))}
-                  </select>
-                </div>
-                <div style={s.formGroup}>
-                  <label style={s.label}>Purpose of Stay</label>
-                  <select style={s.select} value={purpose} onChange={(e) => setPurpose(e.target.value)}>
-                    {["Leisure / Vacation", "Business Trip", "Honeymoon", "Family Trip", "Anniversary", "Other"].map((p) => (<option key={p}>{p}</option>))}
-                  </select>
-                </div>
-              </div>
-              <div style={s.btnRow}>
-                <button style={s.btnGhost} onClick={() => setStep(1)}>← Back</button>
-                <button style={s.btnPrimary} onClick={handleNext} onMouseEnter={(e) => (e.currentTarget.style.background = "#7A5C35")} onMouseLeave={(e) => (e.currentTarget.style.background = "#1C1A16")}>Continue →</button>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div>
               <h2 style={s.formTitle}>Payment Details</h2>
-              <div style={s.mockBadge}>🔒 This is a mock payment simulation. No real transaction will be processed.</div>
               <div style={s.cardVisual}>
                 <div style={{ position: "absolute", right: -20, top: -20, fontSize: 120, opacity: 0.05 }}>◯</div>
                 <div style={s.cardChip} />
@@ -260,7 +234,19 @@ export default function Booking({ bookingData, onBack, onSuccess, onLogin, onLog
               </div>
               <div style={s.btnRow}>
                 <button style={s.btnGhost} onClick={() => setStep(2)}>← Back</button>
-                <button style={s.btnPrimary} onClick={handleConfirm} onMouseEnter={(e) => (e.currentTarget.style.background = "#3A7D5A")} onMouseLeave={(e) => (e.currentTarget.style.background = "#1C1A16")}>✓ Confirm Booking</button>
+                <button
+                  style={{
+                    ...s.btnPrimary,
+                    opacity: submitting ? 0.6 : 1,
+                    cursor: submitting ? "not-allowed" : "pointer",
+                  }}
+                  onClick={handleConfirm}
+                  disabled={submitting}
+                  onMouseEnter={(e) => { if (!submitting) e.currentTarget.style.background = "#3A7D5A"; }}
+                  onMouseLeave={(e) => { if (!submitting) e.currentTarget.style.background = "#1C1A16"; }}
+                >
+                  {submitting ? "Processing..." : "✓ Confirm Booking"}
+                </button>
               </div>
             </div>
           )}
@@ -268,18 +254,28 @@ export default function Booking({ bookingData, onBack, onSuccess, onLogin, onLog
 
         <div style={s.summary}>
           <div style={s.summaryTitle}>Booking Summary</div>
-          <div style={s.roomThumb}>❖</div>
-          <div style={s.roomName}>{room.name}</div>
-          <div style={s.roomType}>{room.type} · {guests} guest{guests > 1 ? "s" : ""}</div>
+          <div style={s.roomName}>Room #{room?.roomNumber}</div>
+          <div style={s.roomType}>{roomType?.name} · {guests} guest{guests > 1 ? "s" : ""}</div>
           <div style={s.summaryLine}><span>Check-in</span><span>{checkIn}</span></div>
           <div style={s.summaryLine}><span>Check-out</span><span>{checkOut}</span></div>
-          <div style={s.summaryLine}><span>Nights</span><span>{Math.max(nights, 1)}</span></div>
-          <div style={s.summaryLine}><span>Price / night</span><span>${room.price}</span></div>
+          <div style={s.summaryLine}><span>Nights</span><span>{nights}</span></div>
+          <div style={s.summaryLine}>
+            <span>Price / night</span>
+            <span>
+              {hasDiscount && <span style={{ textDecoration: "line-through", color: "#8A8278", marginRight: 6 }}>${basePrice}</span>}
+              ${pricePerNight}
+            </span>
+          </div>
+          {ruleName && (
+            <div style={s.summaryLine}>
+              <span style={{ color: "#3A7D5A" }}>✦ {ruleName}</span>
+              <span style={{ color: "#3A7D5A" }}>Applied</span>
+            </div>
+          )}
           <div style={s.summaryLine}><span>Subtotal</span><span>${subtotal}</span></div>
-          <div style={s.summaryLine}><span>Taxes (10%)</span><span>${tax}</span></div>
           <div style={s.summaryTotal}>
             <span style={s.totalLabel}>Total</span>
-            <span style={s.totalPrice}>${total}</span>
+            <span style={s.totalPrice}>${subtotal}</span>
           </div>
         </div>
       </div>

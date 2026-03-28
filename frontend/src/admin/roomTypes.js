@@ -81,7 +81,6 @@ function RoomTypeModal({ type, onSave, onClose }) {
     onSave(payload);
   };
 
-  // Cancellation type → tự động gợi ý refundPercent
   const handleCancellationChange = (val) => {
     set("cancellation", val);
     if (val === "free") { set("refundPercent", 100); set("cancelDeadlineHours", 24); }

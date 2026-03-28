@@ -1,7 +1,13 @@
 import api from "./api";
 
+const getRoom = (id, params) =>
+  api.get(`/rooms/${id}`, { params });
+
 const getRooms = (params) =>
   api.get("/rooms", { params });
+
+const adminRooms = (params) =>
+  api.get("/rooms/admin", { params });
 
 const createRoom = (data) =>
   api.post("/rooms", data);
@@ -31,9 +37,11 @@ const deleteImage = (roomId, image) => {
 
 export default {
   getRooms,
+  getRoom,
   createRoom,
   updateRoom,
   deleteRoom,
   deleteImage,
-  uploadImages
+  uploadImages,
+  adminRooms,
 };

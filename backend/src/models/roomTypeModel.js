@@ -25,10 +25,10 @@ const roomTypeSchema = new mongoose.Schema({
       default: "free"
     },
     cancelDeadlineHours: { type: Number, default: 24 }, 
-    refundPercent: { type: Number, default: 100 },      
+    refundPercent: { type: Number, default: 100, min: 0, max: 100 },      
     checkInTime: { type: String, default: "14:00" },
     checkOutTime: { type: String, default: "12:00" },
-    extraGuestFee: { type: Number, default: 0 },        
+    extraGuestFee: { type: Number, default: 0, min: 0 },        
   }
 
 }, { versionKey: false });

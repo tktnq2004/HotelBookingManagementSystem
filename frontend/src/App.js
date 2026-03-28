@@ -17,7 +17,7 @@ export default function App() {
   const [bookingData, setBookingData] = useState(null);
   const [bookingResult, setBookingResult] = useState(null);
   const [user, setUser] = useState(null);
-
+  const [bookingDates, setBookingDates] = useState(null);
 
   const handleLogin = (tab = "login") => {
     setAuthTab(tab);
@@ -34,13 +34,13 @@ export default function App() {
     setPage("home");
   };
 
-  const handleViewRoom = (room) => {
-    setSelectedRoomId(room.id);
+  const handleViewRoom = (room,dates) => {
+    setSelectedRoomId(room._id);
+    setBookingDates(dates);
     setPage("room-detail");
   };
 
   const handleBook = (data) => {
-    // Nếu chưa đăng nhập thì chuyển sang trang auth
     if (!user) {
       setAuthTab("login");
       setPage("auth");
@@ -55,7 +55,7 @@ export default function App() {
     setPage("success");
   };
 
-  // Props dùng chung cho tất cả các trang
+
   const commonProps = {
     user,
     onLogin: handleLogin,
@@ -64,9 +64,9 @@ export default function App() {
     onHome: () => setPage("home"),
   };
 
-  // Props dùng chung cho tất cả các trang admin
+
   const adminProps = {
-    adminUser : user,
+    adminUser: user,
     onLogout: () => setPage("home"),
     onNavigate: (key) => setPage(`admin-${key}`),
   };
@@ -139,6 +139,9 @@ export default function App() {
       <RoomDetail
         {...commonProps}
         roomId={selectedRoomId}
+        initialCheckIn={bookingDates?.checkIn}
+        initialCheckOut={bookingDates?.checkOut}
+        initialGuests={bookingDates?.guests}
         onBack={() => setPage("home")}
         onBook={handleBook}
       />
@@ -149,7 +152,7 @@ export default function App() {
     <Home
       {...commonProps}
       onViewRoom={handleViewRoom}
-      onBookNow={(room) => { setSelectedRoomId(room?.id || 1); setPage("room-detail"); }}
+      onBookNow={(room) => { setSelectedRoomId(room?._id); setPage("room-detail"); }}
       onAdminDashboard={() => setPage("admin-dashboard")}
     />
   );

@@ -5,10 +5,10 @@ import { getRoomTypes } from "../services/roomType.service";
 function Sidebar({ active, onNavigate, onLogout }) {
   const navItems = [
     { icon: "◈", label: "Dashboard", key: "dashboard" },
-    {  label: "Room Types", key: "roomTypes" },
-    {  label: "Rooms", key: "rooms" },
-    {  label: "Bookings", key: "bookings" },
-    {  label: "Pricing", key: "pricing" },
+    { label: "Room Types", key: "roomTypes" },
+    { label: "Rooms", key: "rooms" },
+    { label: "Bookings", key: "bookings" },
+    { label: "Pricing", key: "pricing" },
   ];
 
   return (
@@ -221,8 +221,11 @@ export default function AdminRooms({ onLogout, adminUser, onNavigate }) {
   const [deleteRoom, setDeleteRoom] = useState(null);
   const [toast, setToast] = useState(null);
   const [roomTypes, setRoomTypes] = useState([]);
-  const [images, setImages] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const totalPages = Math.ceil(total / limit);
 
   useEffect(() => {
     if (editRoom) {
@@ -235,12 +238,27 @@ export default function AdminRooms({ onLogout, adminUser, onNavigate }) {
     fetchRoomTypes();
   }, []);
 
+  useEffect(() => {
+    fetchRooms();
+  }, [page, search, filterType]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterType]);
+
   const fetchRooms = async () => {
     try {
-      const res = await roomService.getRooms();
+      const res = await roomService.adminRooms({
+        page,
+        limit,
+        search,
+        roomTypeId: filterType !== "All" ? filterType : undefined
+      });
+
       setRooms(res.data.data || []);
+      setTotal(res.data.pagination?.total || 0);
     } catch (err) {
-      console.error("ERROR:", err.response?.data || err.message);
+      console.error(err);
     }
   };
 
@@ -369,7 +387,7 @@ export default function AdminRooms({ onLogout, adminUser, onNavigate }) {
             <table style={s.table}>
               <thead>
                 <tr>
-                  {["Room No.", "Name", "Type", "Capacity", "Price / Night", "Actions"].map((h) => (
+                  {["Room Number", "Room Type", "Images", "Actions"].map((h) => (
                     <th key={h} style={s.th}>{h}</th>
                   ))}
                 </tr>
@@ -377,7 +395,7 @@ export default function AdminRooms({ onLogout, adminUser, onNavigate }) {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ ...s.td, textAlign: "center", color: "#8A8278", padding: "40px" }}>No rooms found</td>
+                    <td colSpan={3} style={{ ...s.td, textAlign: "center", color: "#8A8278", padding: "40px" }}>No rooms found</td>
                   </tr>
                 ) : (
                   filtered.map((room) => {
@@ -387,10 +405,39 @@ export default function AdminRooms({ onLogout, adminUser, onNavigate }) {
                         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
                         <td style={{ ...s.td, fontWeight: 600, color: "#C9993A" }}>#{room.roomNumber}</td>
-                        <td style={s.td}>{room.roomTypeId?.name}</td>
-                        <td style={s.td}>{room.roomTypeId?.type}</td>
-                        <td style={s.td}>{room.roomTypeId?.capacity} guests</td>
-                        <td style={{ ...s.td, fontFamily: "'Playfair Display', serif", fontSize: 16 }}>${room.roomTypeId?.basePrice}</td>
+                        <td style={{ ...s.td, fontWeight: 600, color: "#C9993A" }}>{room.roomTypeId?.name}</td>
+                        <td style={s.td}>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            {room.images?.slice(0, 3).map((img, i) => (
+                              <img
+                                key={i}
+                                src={`http://localhost:5000${img}`}
+                                alt=""
+                                style={{
+                                  width: 40,
+                                  height: 40,
+                                  objectFit: "cover",
+                                  borderRadius: 4
+                                }}
+                              />
+                            ))}
+
+                            {room.images?.length > 3 && (
+                              <div style={{
+                                width: 40,
+                                height: 40,
+                                fontSize: 11,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                background: "rgba(0,0,0,0.05)",
+                                borderRadius: 4
+                              }}>
+                                +{room.images.length - 3}
+                              </div>
+                            )}
+                          </div>
+                        </td>
                         <td style={s.td}>
                           <button style={s.btnEdit} onClick={() => handleEdit(room)}
                             onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(28,26,22,0.05)")}
@@ -407,6 +454,44 @@ export default function AdminRooms({ onLogout, adminUser, onNavigate }) {
                 )}
               </tbody>
             </table>
+          </div>
+          <div style={s.pagination}>
+            <button
+              style={{
+                ...s.pageBtn,
+                opacity: page === 1 ? 0.4 : 1,
+                cursor: page === 1 ? "not-allowed" : "pointer"
+              }}
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              ←
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => setPage(i + 1)}
+                style={{
+                  ...s.pageBtn,
+                  ...(page === i + 1 ? s.pageBtnActive : {})
+                }}
+              >
+                {i + 1}
+              </button>
+            ))}
+
+            <button
+              style={{
+                ...s.pageBtn,
+                opacity: page === totalPages ? 0.4 : 1,
+                cursor: page === totalPages ? "not-allowed" : "pointer"
+              }}
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              →
+            </button>
           </div>
         </div>
       </div>
@@ -431,7 +516,9 @@ export default function AdminRooms({ onLogout, adminUser, onNavigate }) {
       )}
     </div>
   );
+
 }
+
 const s = {
   layout: { display: "flex", minHeight: "100vh", background: "#F7F3EC", fontFamily: "'DM Sans', sans-serif", color: "#1C1A16" },
   main: { flex: 1, overflow: "auto" },
@@ -457,4 +544,8 @@ const s = {
   td: { fontSize: 13, padding: "14px 16px", borderBottom: "1px solid rgba(28,26,22,0.05)", color: "#1C1A16", verticalAlign: "middle" },
   btnEdit: { background: "transparent", border: "1px solid rgba(28,26,22,0.15)", color: "#1C1A16", padding: "6px 14px", fontSize: 11, cursor: "pointer", borderRadius: 2, fontFamily: "'DM Sans', sans-serif", marginRight: 8 },
   btnDelete: { background: "transparent", border: "1px solid rgba(185,64,64,0.3)", color: "#B94040", padding: "6px 14px", fontSize: 11, cursor: "pointer", borderRadius: 2, fontFamily: "'DM Sans', sans-serif" },
+  pagination: { display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 28, },
+  pageBtn: { minWidth: 34, height: 34, padding: "0 10px", border: "1px solid rgba(28,26,22,0.15)", background: "#fff", color: "#1C1A16", fontSize: 12, borderRadius: 4, cursor: "pointer", transition: "all .2s ease", fontFamily: "'DM Sans', sans-serif" },
+  pageBtnActive: { background: "#1C1A16", color: "#F7F3EC", border: "1px solid #1C1A16", fontWeight: 600 }
+
 };

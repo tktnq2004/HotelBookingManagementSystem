@@ -1,5 +1,4 @@
 import PricingRule from "../models/pricingRuleModel.js";
-import RoomType from "../models/roomTypeModel.js";
 
 export const createPricingRule = async (req, res) => {
   try {
@@ -24,6 +23,7 @@ export const createPricingRule = async (req, res) => {
     const existingRule = await PricingRule.findOne({
       roomTypeId,
       isActive: true,
+      priority,
       startDate: { $lt: end },
       endDate: { $gt: start }
     });
@@ -44,6 +44,46 @@ export const createPricingRule = async (req, res) => {
 
   } catch (error) {
     console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+export const updatePricingRule = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, roomTypeId, startDate, endDate, multiplier, priority, isActive } = req.body;
+
+    const updatedData = {};
+    if (name) updatedData.name = name;
+    if (roomTypeId) updatedData.roomTypeId = roomTypeId;
+    if (multiplier) updatedData.multiplier = multiplier;
+    if (priority) updatedData.priority = priority;
+    if (isActive !== undefined) updatedData.isActive = isActive;
+
+    if (startDate) updatedData.startDate = new Date(startDate);
+    if (endDate) updatedData.endDate = new Date(endDate);
+
+    if (startDate || endDate) {
+      const current = await PricingRule.findById(id);
+      const start = updatedData.startDate || current.startDate;
+      const end = updatedData.endDate || current.endDate;
+
+      const overlap = await PricingRule.findOne({
+        _id: { $ne: id },
+        roomTypeId: updatedData.roomTypeId || current.roomTypeId,
+        isActive: true,
+        priority,
+        startDate: { $lt: end },
+        endDate: { $gt: start }
+      });
+      if (overlap) return res.status(400).json({ message: "Overlapping pricing rule exists" });
+    }
+
+    const rule = await PricingRule.findByIdAndUpdate(id, updatedData, { returnDocument: "after", runValidators: true })
+      .populate("roomTypeId", "name basePrice");
+
+    if (!rule) return res.status(404).json({ message: "Rule not found" });
+    res.json({ data: rule });
+  } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -78,92 +118,12 @@ export const getPricingRule = async (req, res) => {
   }
 };
 
-export const updatePricingRule = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, roomTypeId, startDate, endDate, multiplier, priority, isActive } = req.body;
-
-    const updatedData = {};
-    if (name) updatedData.name = name;
-    if (roomTypeId) updatedData.roomTypeId = roomTypeId;
-    if (multiplier) updatedData.multiplier = multiplier;
-    if (priority) updatedData.priority = priority;
-    if (isActive !== undefined) updatedData.isActive = isActive;
-
-    if (startDate) updatedData.startDate = new Date(startDate);
-    if (endDate) updatedData.endDate = new Date(endDate);
-
-    if (startDate || endDate) {
-      const current = await PricingRule.findById(id);
-      const start = updatedData.startDate || current.startDate;
-      const end = updatedData.endDate || current.endDate;
-
-      const overlap = await PricingRule.findOne({
-        _id: { $ne: id },
-        roomTypeId: updatedData.roomTypeId || current.roomTypeId,
-        isActive: true,
-        startDate: { $lt: end },
-        endDate: { $gt: start }
-      });
-      if (overlap) return res.status(400).json({ message: "Overlapping pricing rule exists" });
-    }
-
-    const rule = await PricingRule.findByIdAndUpdate(id, updatedData, { returnDocument: "after", runValidators: true })
-      .populate("roomTypeId", "name basePrice");
-
-    if (!rule) return res.status(404).json({ message: "Rule not found" });
-    res.json({ data: rule });
-  } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
 
 export const deletePricingRule = async (req, res) => {
   try {
     const rule = await PricingRule.findByIdAndDelete(req.params.id);
     if (!rule) return res.status(404).json({ message: "Rule not found" });
     res.json({ message: "Deleted" });
-  } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-export const calculatePrice = async (req, res) => {
-  try {
-    const { roomTypeId, checkIn, checkOut } = req.query;
-
-    const nights = Math.ceil(
-      (new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)
-    );
-
-    if (nights <= 0)
-      return res.status(400).json({ message: "Invalid date range" });
-
-    const roomType = await RoomType.findById(roomTypeId);
-    if (!roomType) return res.status(404).json({ message: "RoomType not found" });
-
-    const rule = await PricingRule.findOne({
-      roomTypeId,
-      isActive: true,
-      startDate: { $lte: new Date(checkOut) },
-      endDate: { $gte: new Date(checkIn) }
-    }).sort({ priority: -1 });
-
-    const multiplier = rule?.multiplier || 1;
-    const pricePerNight = Math.round(roomType.basePrice * multiplier);
-    const totalPrice = pricePerNight * nights;
-
-    res.json({
-      data: {
-        roomTypeId,
-        basePrice: roomType.basePrice,
-        multiplier,
-        pricePerNight,
-        nights,
-        totalPrice,
-        ruleName: rule?.name || null
-      }
-    });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
