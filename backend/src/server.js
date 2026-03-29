@@ -15,8 +15,10 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 
-connectDB(process.env.MONGO_URI);
+if (process.env.NODE_ENV !== "test") {
+  connectDB(process.env.MONGO_URI);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+};

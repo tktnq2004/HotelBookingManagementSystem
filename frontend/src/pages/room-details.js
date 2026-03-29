@@ -272,9 +272,10 @@ export default function RoomDetail({ roomId, onBack, onBook, onLogin, onLogout, 
       showToast("Room is not available", "error");
       return;
     }
-    onBook?.({ room, checkIn, checkOut, guests: Number(guests), nights, pricePerNight, subtotal, total, ruleName: priceInfo?.ruleName || null, multiplier: priceInfo?.multiplier || 1 });
-  };
 
+    onBook?.(room, priceInfo, { checkIn, checkOut, guests });
+  };
+  
   if (loading) return <Skeleton />;
 
   if (!room) return (

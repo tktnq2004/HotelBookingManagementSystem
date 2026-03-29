@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import roomService from "../services/room.service";
 import { getRoomTypes } from "../services/roomType.service";
 
@@ -22,7 +22,7 @@ function getNextDay(from) {
   return d.toISOString().split("T")[0];
 }
 
-function RoomCard({ room, index, onView, onBook }) {
+function RoomCard({ room, index, onView, onBook, isSelected, onToggleSelect }) {
   const [imgError, setImgError] = useState(false);
   const [hovered, setHovered] = useState(false);
 
@@ -36,7 +36,7 @@ function RoomCard({ room, index, onView, onBook }) {
   const hasDiscount = priceInfo?.hasPricing;
   const basePrice = priceInfo?.basePrice || 0;
   const finalPrice = priceInfo?.finalPrice || basePrice;
-  const nights = priceInfo?.nights || 1;
+
 
   return (
     <div
@@ -53,6 +53,21 @@ function RoomCard({ room, index, onView, onBook }) {
         cursor: "pointer",
       }}
     >
+      {isSelected && (
+        <div style={{
+          position: "absolute", top: 0, left: 0, right: 0,
+          background: "rgba(201,153,58,0.12)",
+          borderBottom: "1px solid rgba(201,153,58,.3)",
+          padding: "6px 14px",
+          fontSize: 10, fontWeight: 700, letterSpacing: "1.5px",
+          color: "#C9993A", textTransform: "uppercase",
+          display: "flex", alignItems: "center", gap: 6,
+          zIndex: 2,
+        }}>
+          ✓ Selected for booking
+        </div>
+      )}
+
       <div style={{ height: 220, position: "relative", overflow: "hidden", background: gradient }}>
         {firstImage && !imgError ? (
           <img
@@ -105,94 +120,83 @@ function RoomCard({ room, index, onView, onBook }) {
           ))}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 14, borderTop: "1px solid rgba(28,26,22,0.08)" }}>
-          <div>
+        <div style={{ paddingTop: 14, borderTop: "1px solid rgba(28,26,22,0.08)" }}>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20 }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", lineHeight: 1 }}>
               {hasDiscount ? (
-                <>
-                  {/* basePrice gạch */}
-                  <div style={{
-                    fontSize: 14,
-                    color: "#8A8278",
-                    textDecoration: "line-through",
-                    marginBottom: 2
-                  }}>
-                    ${basePrice}
-                  </div>
-
-                  {/* giá sau pricing */}
-                  <div style={{
-                    fontSize: 28,
-                    color: "#B94040"
-                  }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                  <span style={{ fontSize: 32, color: "#B94040", fontWeight: 500 }}>
                     ${finalPrice}
-                    <span style={{
-                      fontFamily: "'DM Sans', sans-serif",
-                      fontSize: 11,
-                      color: "#8A8278",
-                      fontWeight: 400
-                    }}>
-                      {" "} /night
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <div style={{
-                  fontSize: 28,
-                  color: "#1C1A16"
-                }}>
-                  ${basePrice}
-                  <span style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: 11,
-                    color: "#8A8278",
-                    fontWeight: 400
-                  }}>
-                    {" "} /night
                   </span>
+                  <span style={{ fontSize: 16, color: "#8A8278", textDecoration: "line-through", opacity: 0.7 }}>
+                    ${basePrice}
+                  </span>
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#8A8278" }}>/night</span>
+                </div>
+              ) : (
+                <div style={{ fontSize: 32, color: "#1C1A16", fontWeight: 500 }}>
+                  ${basePrice}
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#8A8278", fontWeight: 400 }}> /night</span>
                 </div>
               )}
             </div>
-            {priceInfo && nights > 1 && (
-              <div style={{ fontSize: 10, color: "#C9993A", marginTop: 3 }}>
-                ${priceInfo.totalPrice} total · {nights} nights
-              </div>
-            )}
-            {priceInfo?.ruleName && (
-              <div style={{ fontSize: 9, color: "#8A8278", marginTop: 2, letterSpacing: "0.5px" }}>
-                {priceInfo.ruleName}
-              </div>
-            )}
+
+            {/* Badge trạng thái nhỏ gọn bên góc phải */}
+            <div style={{
+              fontSize: 10,
+              fontWeight: 600,
+              color: isAvailable ? "#3A7D5A" : "#B94040",
+              background: isAvailable ? "rgba(58,125,90,0.08)" : "rgba(185,64,64,0.08)",
+              padding: "4px 8px",
+              borderRadius: 2,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px"
+            }}>
+              {isAvailable ? "● Available" : "○ Fully Booked"}
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+
+          <div style={{ display: "flex", gap: 6 }}>
             <button
               onClick={(e) => { e.stopPropagation(); onView(room); }}
-              style={{ border: "1px solid #1C1A16", background: "transparent", color: "#1C1A16", padding: "7px 14px", fontSize: 11, fontWeight: 500, cursor: "pointer", borderRadius: 2, fontFamily: "'DM Sans', sans-serif", transition: "all .2s" }}
+              style={{
+                flex: 1, border: "1px solid #1C1A16", background: "transparent",
+                color: "#1C1A16", padding: "8px 0", fontSize: 11, fontWeight: 500,
+                cursor: "pointer", borderRadius: 2, fontFamily: "'DM Sans', sans-serif", transition: "all .2s"
+              }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#1C1A16"; e.currentTarget.style.color = "#F7F3EC"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#1C1A16"; }}
             >Details</button>
+
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!isAvailable) return;
-                onBook(room, priceInfo);
-              }}
+              onClick={(e) => { e.stopPropagation(); if (!isAvailable) return; onToggleSelect(room, priceInfo); }}
               disabled={!isAvailable}
               style={{
-                background: isAvailable ? "#C9993A" : "#D0CBC3",
-                border: `1px solid ${isAvailable ? "#C9993A" : "#D0CBC3"}`,
-                color: isAvailable ? "#1C1A16" : "#9A958F",
-                padding: "7px 14px", fontSize: 11, fontWeight: 700,
+                flex: 1,
+                background: isSelected ? "#C9993A" : "transparent",
+                border: `1px solid ${isSelected ? "#C9993A" : isAvailable ? "#C9993A" : "#D0CBC3"}`,
+                color: isSelected ? "#1C1A16" : isAvailable ? "#C9993A" : "#9A958F",
+                padding: "8px 0", fontSize: 11, fontWeight: 700,
                 cursor: isAvailable ? "pointer" : "not-allowed",
-                borderRadius: 2, fontFamily: "'DM Sans', sans-serif",
-                transition: "all .2s",
+                borderRadius: 2, fontFamily: "'DM Sans', sans-serif", transition: "all .2s",
               }}
-              onMouseEnter={(e) => { if (isAvailable) e.currentTarget.style.background = "#b8883a"; }}
-              onMouseLeave={(e) => { if (isAvailable) e.currentTarget.style.background = "#C9993A"; }}
             >
-              {isAvailable ? "Book Now" : "Unavailable"}
+              {!isAvailable ? "Unavailable" : isSelected ? "✓ Selected" : "+ Select"}
             </button>
 
+            {isAvailable && !isSelected && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onBook(room, priceInfo); }}
+                style={{
+                  flex: 1, background: "#1C1A16", border: "1px solid #1C1A16",
+                  color: "#F7F3EC", padding: "8px 0", fontSize: 11, fontWeight: 700,
+                  cursor: "pointer", borderRadius: 2, fontFamily: "'DM Sans', sans-serif", transition: "all .2s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "#333"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "#1C1A16"; }}
+              >Book</button>
+            )}
           </div>
         </div>
       </div>
@@ -245,6 +249,7 @@ export default function Home({ onViewRoom, onBookNow, onMyBookings, onLogin, onL
   const [activeTab, setActiveTab] = useState("all");
   const [searched, setSearched] = useState(false);
 
+  const [selectedRooms, setSelectedRooms] = useState([]);
   const [toast, setToast] = useState(null);
 
   const showToast = (msg, type = "success") => {
@@ -301,7 +306,7 @@ export default function Home({ onViewRoom, onBookNow, onMyBookings, onLogin, onL
     }
   };
 
-  // Filter rooms
+
   const filteredRooms = rooms.filter((r) => {
     const matchTab = activeTab === "all" || r.roomTypeId?._id === activeTab;
     const matchSearch = !searchRoomType || r.roomTypeId?._id === searchRoomType;
@@ -317,6 +322,32 @@ export default function Home({ onViewRoom, onBookNow, onMyBookings, onLogin, onL
     }
     onBookNow?.(room, priceInfo, { checkIn, checkOut, guests });
   };
+
+  const toggleRoomSelection = (room, priceInfo) => {
+    setSelectedRooms(prev => {
+      const exists = prev.find(r => r.room._id === room._id);
+      if (exists) return prev.filter(r => r.room._id !== room._id);
+      return [...prev, { room, priceInfo }];
+    });
+  };
+
+  const isRoomSelected = (roomId) => selectedRooms.some(r => r.room._id === roomId);
+
+  const handleBookSelected = () => {
+    if (!user) {
+      showToast("Please sign in to book rooms", "error");
+      setTimeout(() => onLogin?.("login"), 800);
+      return;
+    }
+
+    onBookNow?.(selectedRooms, null, { checkIn, checkOut, guests, isMulti: true });
+  };
+
+  const totalSelectedPrice = selectedRooms.reduce((sum, { priceInfo, room }) => {
+    const nights = Math.ceil((new Date(checkOut) - new Date(checkIn)) / 86400000) || 1;
+    const price = priceInfo?.finalPrice || room.roomTypeId?.basePrice || 0;
+    return sum + price * nights;
+  }, 0);
 
   return (
     <div style={s.page}>
@@ -489,6 +520,8 @@ export default function Home({ onViewRoom, onBookNow, onMyBookings, onLogin, onL
                 index={i}
                 checkIn={checkIn}
                 checkOut={checkOut}
+                isSelected={isRoomSelected(room._id)}           // <-- thêm
+                onToggleSelect={toggleRoomSelection}             // <-- thêm
                 onView={(r) => onViewRoom?.(r, { checkIn, checkOut, guests })}
                 onBook={handleBook}
               />
@@ -546,7 +579,90 @@ export default function Home({ onViewRoom, onBookNow, onMyBookings, onLogin, onL
           </div>
         </section>
       )}
+      {/* ── FLOATING CART BAR ── */}
+      {selectedRooms.length > 0 && (
+        <div style={{
+          position: "fixed", bottom: 0, left: 0, right: 0,
+          background: "#1C1A16",
+          borderTop: "1px solid rgba(201,153,58,.3)",
+          zIndex: 100,
+          padding: "16px 40px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          boxShadow: "0 -8px 40px rgba(28,26,22,.4)",
+          animation: "slideUp .3s ease",
+          fontFamily: "'DM Sans', sans-serif",
+        }}>
+          {/* Left: room list */}
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, color: "#C9993A", marginRight: 4 }}>
+              {selectedRooms.length}
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: "#F7F3EC", fontWeight: 600, letterSpacing: "1px" }}>
+                ROOM{selectedRooms.length > 1 ? "S" : ""} SELECTED
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                {selectedRooms.map(({ room }) => (
+                  <span
+                    key={room._id}
+                    style={{
+                      fontSize: 10, color: "rgba(247,243,236,0.55)",
+                      background: "rgba(255,255,255,0.06)",
+                      padding: "2px 8px", borderRadius: 1,
+                      display: "flex", alignItems: "center", gap: 5,
+                    }}
+                  >
+                    #{room.roomNumber} · {room.roomTypeId?.name}
+                    <span
+                      onClick={() => toggleRoomSelection(room)}
+                      style={{ cursor: "pointer", color: "#B94040", fontWeight: 700, marginLeft: 2 }}
+                    >×</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
 
+          {/* Right: total + actions */}
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 10, color: "rgba(247,243,236,0.4)", letterSpacing: "1px" }}>
+                ESTIMATED TOTAL
+              </div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: "#E8D5A3", lineHeight: 1 }}>
+                ${Math.round(totalSelectedPrice)}
+              </div>
+              <div style={{ fontSize: 10, color: "rgba(247,243,236,0.35)", marginTop: 2 }}>
+                {Math.ceil((new Date(checkOut) - new Date(checkIn)) / 86400000)} night(s)
+              </div>
+            </div>
+
+            <button
+              onClick={() => setSelectedRooms([])}
+              style={{
+                background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
+                color: "rgba(247,243,236,0.5)", padding: "10px 16px",
+                fontSize: 11, cursor: "pointer", borderRadius: 2,
+              }}
+            >Clear</button>
+
+            <button
+              onClick={handleBookSelected}
+              style={{
+                background: "#C9993A", border: "1px solid #C9993A",
+                color: "#1C1A16", padding: "10px 28px",
+                fontSize: 12, fontWeight: 700, cursor: "pointer",
+                borderRadius: 2, letterSpacing: "0.5px",
+                transition: "background .2s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#b8883a")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#C9993A")}
+            >
+              Book {selectedRooms.length} Room{selectedRooms.length > 1 ? "s" : ""} →
+            </button>
+          </div>
+        </div>
+      )}
       <Toast toast={toast} />
     </div>
   );
@@ -555,7 +671,6 @@ export default function Home({ onViewRoom, onBookNow, onMyBookings, onLogin, onL
 const s = {
   page: { minHeight: "100vh", background: "#F7F3EC", fontFamily: "'DM Sans', sans-serif", color: "#1C1A16" },
 
-  // Navbar
   nav: { position: "sticky", top: 0, zIndex: 50, background: "rgba(247,243,236,0.96)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(28,26,22,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 40px", height: 64 },
   logo: { fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 600, letterSpacing: "2px", cursor: "pointer", color: "#1C1A16" },
   navLinks: { display: "flex", alignItems: "center", gap: 24 },
@@ -567,7 +682,6 @@ const s = {
   userAvatar: { width: 32, height: 32, borderRadius: "50%", background: "#C9993A", color: "#1C1A16", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 },
   userName: { fontSize: 13, color: "#1C1A16", fontWeight: 500 },
 
-  // Hero
   hero: { minHeight: "calc(100vh - 64px)", background: "linear-gradient(155deg,#1C1A16 0%,#2A1E0E 40%,#3A2A10 70%,#4A3518 100%)", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px 40px 60px", position: "relative", overflow: "hidden" },
   heroBg: { position: "absolute", inset: 0, opacity: 0.03, backgroundImage: "repeating-linear-gradient(45deg,#C9993A 0,#C9993A 1px,transparent 0,transparent 50%)", backgroundSize: "24px 24px", pointerEvents: "none" },
   heroContent: { position: "relative", zIndex: 2, maxWidth: 900, animation: "fadeIn .8s ease" },
@@ -578,7 +692,6 @@ const s = {
   btnPrimary: { background: "#C9993A", color: "#1C1A16", border: "none", padding: "13px 30px", fontSize: 11, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", cursor: "pointer", borderRadius: 2, fontFamily: "'DM Sans', sans-serif", transition: "all .2s" },
   btnSecondary: { background: "transparent", color: "#F7F3EC", border: "1px solid rgba(247,243,236,0.25)", padding: "13px 30px", fontSize: 11, letterSpacing: "1.5px", textTransform: "uppercase", cursor: "pointer", borderRadius: 2, fontFamily: "'DM Sans', sans-serif", transition: "all .2s" },
 
-  // Search box
   searchBox: { background: "rgba(255,255,255,0.97)", borderRadius: 3, padding: "20px 24px", display: "flex", alignItems: "center", gap: 0, boxShadow: "0 16px 56px rgba(28,26,22,.32)", maxWidth: 920, backdropFilter: "blur(10px)" },
   sfField: { flex: 1, padding: "0 16px" },
   sfDivider: { width: 1, height: 40, background: "rgba(28,26,22,0.1)", flexShrink: 0 },
@@ -586,13 +699,11 @@ const s = {
   sfInput: { width: "100%", border: "none", background: "transparent", padding: "6px 0", fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#1C1A16", outline: "none" },
   btnSearch: { background: "#1C1A16", color: "#F7F3EC", border: "none", padding: "14px 24px", fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase", cursor: "pointer", borderRadius: 2, whiteSpace: "nowrap", marginLeft: 16, display: "flex", alignItems: "center", transition: "all .2s" },
 
-  // Filters
   filtersBar: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "28px 40px 0", flexWrap: "wrap", gap: 12 },
   filterTabs: { display: "flex", gap: 6, flexWrap: "wrap" },
   filterBtn: { background: "transparent", color: "#8A8278", border: "1px solid rgba(28,26,22,0.15)", padding: "7px 18px", fontSize: 12, cursor: "pointer", borderRadius: 2, fontFamily: "'DM Sans', sans-serif", transition: "all .2s" },
   filterBtnActive: { background: "#1C1A16", color: "#F7F3EC", borderColor: "#1C1A16" },
 
-  // Rooms section
   section: { padding: "36px 40px 72px" },
   secLabel: { fontSize: 9, letterSpacing: "3px", textTransform: "uppercase", color: "#C9993A", marginBottom: 10 },
   secTitle: { fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(28px,3vw,44px)", fontWeight: 400, lineHeight: 1.2, marginBottom: 36 },

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { getDashboard } from "../services/dashBoard.service";
 
-// Định nghĩa lại bảng màu cho Status để giống bản cũ
 const STATUS_STYLE = {
   confirmed: { background: "rgba(39,174,96,0.1)", color: "#3A7D5A", label: "Confirmed" },
   pending: { background: "rgba(201,153,58,0.1)", color: "#C9993A", label: "Pending" },
@@ -156,7 +155,7 @@ export default function AdminDashboard({ onLogout, onNavigate }) {
             <table style={s.table}>
               <thead>
                 <tr>
-                  {["Booking ID", "Guest", "Room", "Check-in", "Check-out", "Total", "Status"].map((h) => (
+                  {["Booking ID","Room", "Check-in", "Check-out", "Total", "Status"].map((h) => (
                     <th key={h} style={s.th}>{h}</th>
                   ))}
                 </tr>
@@ -168,10 +167,9 @@ export default function AdminDashboard({ onLogout, onNavigate }) {
                   return (
                     <tr key={b.id} style={s.trHover}>
                       <td style={{ ...s.td, color: "#C9993A", fontWeight: 500 }}>{b.id}</td>
-                      <td style={s.td}>{b.guest}</td>
                       <td style={s.td}>{b.room}</td>
-                      <td style={s.td}>{b.checkIn}</td>
-                      <td style={s.td}>{b.checkOut}</td>
+                      <td style={s.td}>{new Date(b.checkIn).toLocaleDateString("vi-VN")}</td>
+                      <td style={s.td}>{new Date(b.checkOut).toLocaleDateString("vi-VN")}</td>
                       <td style={{ ...s.td, fontFamily: "'Playfair Display', serif", fontSize: 16 }}>
                         ${b.total?.toLocaleString()}
                       </td>

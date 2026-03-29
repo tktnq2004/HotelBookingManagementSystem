@@ -8,20 +8,25 @@ const bookingSchema = new mongoose.Schema({
     required: true
   },
 
-  customerName: String,
-
   rooms: [
     {
-      roomId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "rooms"
-      },
-      roomTypeId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "roomtypes"
-      },
+      roomId: { type: mongoose.Schema.Types.ObjectId, ref: "rooms" },
+      roomTypeId: { type: mongoose.Schema.Types.ObjectId, ref: "roomtypes" },
+      roomNumber: String,
       roomTypeName: String,
-      pricePerNight: Number
+      pricePerNight: Number,
+      basePrice: Number,
+      images: String,
+
+      appliedRules:
+      {
+        ruleId: { type: mongoose.Schema.Types.ObjectId, ref: "pricingrules" },
+        ruleName: String,
+        multiplier: Number,
+        startDate: Date,
+        endDate: Date,
+      }
+
     }
   ],
 
@@ -38,14 +43,8 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     enum: ["pending", "confirmed", "cancelled", "completed"],
     default: "pending"
-  },
-
-  paymentStatus: {
-    type: String,
-    enum: ["unpaid", "paid", "refunded"],
-    default: "unpaid"
   }
 
-}, { timestamps: true },{versionKey: false });
+}, { timestamps: true, versionKey: false });
 
 export default mongoose.model("bookings", bookingSchema);

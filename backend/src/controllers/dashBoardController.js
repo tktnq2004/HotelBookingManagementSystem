@@ -7,28 +7,24 @@ export const getDashboard = async (req, res) => {
 
     const today = new Date();
 
-    // ===== 1. STATS =====
-
-    const bookings = await Booking.find();
+    const bookings = await Booking.find({
+      status: { $ne: "cancelled" }
+    });
 
     const totalBookings = bookings.length;
 
-    // 👉 chỉ tính revenue đã PAID
     const totalRevenue = bookings
-      .filter(b => b.paymentStatus === "paid")
       .reduce((sum, b) => sum + (b.totalPrice || 0), 0);
 
-    // unique customers
     const totalCustomers = new Set(
       bookings.map(b => b.customerId?.toString())
     ).size;
 
-    // ===== OCCUPANCY (REAL-TIME) =====
 
     const totalRooms = await Room.countDocuments();
 
     const activeBookings = await Booking.find({
-      status: "confirmed",
+      status: { $ne: "cancelled" },
       checkIn: { $lte: today },
       checkOut: { $gte: today }
     });
@@ -45,9 +41,10 @@ export const getDashboard = async (req, res) => {
       ? 0
       : Math.round((occupiedRoomIds.size / totalRooms) * 100);
 
-    // ===== 2. RECENT BOOKINGS =====
 
-    const recentBookingsRaw = await Booking.find()
+    const recentBookingsRaw = await Booking.find({
+      status: { $ne: "cancelled" }
+    })
       .sort({ createdAt: -1 })
       .limit(5);
 
@@ -60,8 +57,6 @@ export const getDashboard = async (req, res) => {
       total: b.totalPrice,
       status: b.status
     }));
-
-    // ===== 3. ROOM OCCUPANCY BY TYPE =====
 
     const roomTypes = await RoomType.find();
 
@@ -95,11 +90,12 @@ export const getDashboard = async (req, res) => {
       })
     );
 
-    // ===== 4. MONTHLY REVENUE =====
-
     const monthlyData = await Booking.aggregate([
       {
-        $match: { paymentStatus: "paid" }
+        $match: {
+          paymentStatus: "paid",
+          status: { $ne: "cancelled" } 
+        }
       },
       {
         $group: {
@@ -116,8 +112,6 @@ export const getDashboard = async (req, res) => {
       month: monthNames[m._id - 1],
       value: m.value
     }));
-
-    // ===== RESPONSE =====
 
     res.json({
       stats: {

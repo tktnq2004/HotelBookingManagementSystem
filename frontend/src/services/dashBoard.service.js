@@ -1,3 +1,3 @@
-import api from "./api";
+import API from "./api";
 
-export const getDashboard = () => api.get("/dashboard");
+export const getDashboard = () => API.get("/dashboard");
